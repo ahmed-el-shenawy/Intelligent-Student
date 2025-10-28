@@ -7,13 +7,10 @@ from models.postgres.ChunksModel import ChunksModel
 from models.postgres.operations_schema import VectorInsertItems
 from models.postgres.operations_schema.documents import DocumentInsert, DocumentInsertBulk, DocumentSearch,DocumentDelete
 from models.postgres.operations_schema.chunks import ChunkInsert
-from routes.schemes.documents import DocumentProcessRequest,DocumentDelRequest
+from routes.schemes.documents import DocumentDelRequest
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from models.postgres.tables_schema.vectors import metadata
-from helpers.db_connection import engine
 from fastapi import UploadFile
-from pgvector.sqlalchemy import Vector
 from helpers import settings
 from typing import List
 import hashlib

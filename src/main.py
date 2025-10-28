@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
-from routes import data_router, documents_router, projects_router, query_router, system_router, auth_router
+from routes import  documents_router, projects_router, query_router, system_router, auth_router
 from helpers import settings
 from llm.LLMClient import LLMClient
 
@@ -42,7 +42,6 @@ app.add_middleware(
 
 # --- Include Routers ---
 app.include_router(auth_router)
-app.include_router(data_router)
 app.include_router(documents_router)
 app.include_router(projects_router)
 app.include_router(query_router)

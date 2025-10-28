@@ -6,10 +6,10 @@ from sqlalchemy import select, update, delete, func
 from sqlalchemy.exc import IntegrityError
 
 from models.postgres.operations_schema.projects import ProjectList, ProjectSearch
+from models.postgres.tables_schema.tables import Project
 
 from .BaseModel import BaseModel
 from models.postgres.operations_schema import ProjectInsert, ProjectUpdate, ProjectDelete, ProjectOut
-from models.postgres.tables_schema import Project
 
 logger = logging.getLogger(__name__)
 
