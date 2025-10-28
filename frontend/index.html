@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RAG Chat Bubble</title>
+  <!-- Optional: Remove this if embedding into an existing site -->
+  <style>
+    body {
+      margin: 0;
+      padding: 2rem;
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+    }
+    /* Demo content only */
+    h1 { text-align: center; color: #333; }
+    p { text-align: center; color: #666; }
+  </style>
+</head>
+<body>
+
+<!-- Demo content (you can delete everything above this in production) -->
+<h1>Professional RAG Chat Widget</h1>
+<p>Scroll down or resize window — the chat bubble stays fixed at bottom-right.</p>
+
+<!-- ✅ RAG CHAT BUBBLE WIDGET (Embed this anywhere) -->
+<div id="ragChatBubble" style="
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  z-index: 10000;
+">
+  <!-- Toggle Button -->
+  <button id="chatToggle" style="
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #007bff;
+    color: white;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+  ">&#128172;</button>
+
+  <!-- Chat Window -->
+  <div id="chatWindow" style="
+    width: 360px;
+    height: 480px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    margin-top: 10px;
+  ">
+    <div style="
+      background: #007bff;
+      color: white;
+      padding: 12px 16px;
+      font-weight: 600;
+      font-size: 16px;
+    ">Ask Me Anything</div>
+
+    <div id="chatBox" style="
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      background: #f9f9fb;
+      font-size: 14px;
+    "></div>
+
+    <div style="padding: 12px; border-top: 1px solid #eee; background: white;">
+      <div style="display: flex;">
+        <input type="text" id="queryInput" placeholder="Type your question..." style="
+          flex: 1;
+          padding: 10px 12px;
+          border: 1px solid #ddd;
+          border-radius: 20px;
+          outline: none;
+          font-size: 14px;
+        " />
+        <button onclick="sendQuery()" style="
+          width: 36px;
+          height: 36px;
+          background: #007bff;
+          color: white;
+          border: none;
+          border-radius: 50%;
+          margin-left: 8px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">&#10148;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Toggle chat window
+  document.getElementById('chatToggle').addEventListener('click', function() {
+    const win = document.getElementById('chatWindow');
+    win.style.display = win.style.display === 'flex' ? 'none' : 'flex';
+  });
+
+  // Prevent closing when clicking inside the widget
+  document.getElementById('ragChatBubble').addEventListener('click', function(e) {
+    e.stopPropagation();
+  });
+
+  // Close when clicking outside
+  document.addEventListener('click', function(e) {
+    const bubble = document.getElementById('ragChatBubble');
+    const win = document.getElementById('chatWindow');
+    if (!bubble.contains(e.target)) {
+      win.style.display = 'none';
+    }
+  });
+
+  // Handle Enter key in input
+  document.getElementById('queryInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') sendQuery();
+  });
+
+  // Send query to RAG backend
+  async function sendQuery() {
+    const input = document.getElementById('queryInput');
+    const query = input.value.trim();
+    if (!query) return;
+
+    addMessage('user', query);
+    input.value = '';
+
+    try {
+      const res = await fetch('http://localhost:5000/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: query, project_name: "project_1" ,k: 5})
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      
+      const data = await res.json();
+      const answer = data.data || 'Sorry, I couldn’t find an answer.';
+      addMessage('bot', answer);
+    } catch (err) {
+      console.error('RAG API Error:', err);
+      addMessage('bot', '⚠️ Failed to reach the server. Is it running on http://localhost:5000?');
+    }
+  }
+
+  // Add message to chat
+  function addMessage(sender, text) {
+    const chatBox = document.getElementById('chatBox');
+    const msgDiv = document.createElement('div');
+    msgDiv.style.marginBottom = '12px';
+    msgDiv.style.display = 'flex';
+    msgDiv.style.justifyContent = sender === 'user' ? 'flex-end' : 'flex-start';
+
+    const bubble = document.createElement('div');
+    bubble.style.maxWidth = '80%';
+    bubble.style.padding = '10px 14px';
+    bubble.style.borderRadius = '18px';
+    bubble.style.wordBreak = 'break-word';
+    bubble.style.fontSize = '14px';
+    bubble.style.lineHeight = '1.4';
+
+    if (sender === 'user') {
+      bubble.style.backgroundColor = '#007bff';
+      bubble.style.color = 'white';
+      bubble.style.borderBottomRightRadius = '4px';
+    } else {
+      bubble.style.backgroundColor = '#e9ecef';
+      bubble.style.color = '#333';
+      bubble.style.borderBottomLeftRadius = '4px';
+    }
+
+    bubble.textContent = text;
+    msgDiv.appendChild(bubble);
+    chatBox.appendChild(msgDiv);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+</script>
+
+</body>
+</html>

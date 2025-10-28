@@ -1,0 +1,14 @@
+fastapi[standard]==0.119.0
+pathvalidate==3.3.1
+python-magic==0.4.27
+pydantic-settings==2.11.0 
+SQLAlchemy==2.0.44
+asyncpg==0.30.0
+pgvector[sqlalchemy]==0.4.1
+alembic==1.17.0
+langchain==1.0.1
+langchain-community==0.4
+pypdf==6.1.2
+openai==2.6.1
+passlib[argon2]==1.7.4
+python-jose[cryptography]==3.5.0
