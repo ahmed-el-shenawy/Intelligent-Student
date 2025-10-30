@@ -4,11 +4,9 @@ import logging
 
 from sqlalchemy import select, delete, func, and_, update
 from sqlalchemy.exc import IntegrityError
-
 from sqlalchemy.sql.elements import ClauseElement
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.postgres.operations_schema.documents import DocumentUpdate
-from .BaseModel import BaseModel
 from models.postgres.operations_schema import (
     DocumentInsert,
     DocumentOut,
@@ -16,182 +14,122 @@ from models.postgres.operations_schema import (
     DocumentSearch,
     DocumentInsertBulk,
 )
-from models.postgres.tables_schema .tables import Document
+from models.postgres.tables_schema.tables import Document
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("DocumentsModel")
 
-
-class DocumentsModel(BaseModel):
+class DocumentsModel:
     def __init__(self):
-        super().__init__()
+        pass
 
-    async def insert_document(self, doc_data: DocumentInsert) -> DocumentOut:
-        async for session in self.get_session():
-            new_doc = Document(
-                project_id=doc_data.project_id,
-                filename=doc_data.filename,
-                doc_metadata=doc_data.metadata,
-            )
-            session.add(new_doc)
-            try:
-                await session.commit()
-                await session.refresh(new_doc)
-                return DocumentOut.model_validate(new_doc)
-            except IntegrityError as e:
-                await session.rollback()
-                logger.error(f"Failed to insert document '{doc_data.filename}': {e}")
-                raise ValueError(f"Failed to insert document '{doc_data.filename}' for project '{doc_data.project_id}'.")
+    # ------------------------- Insert Single Document -------------------------
+    async def insert_document(self, db: AsyncSession, doc_data: DocumentInsert) -> DocumentOut:
+        logger.info(f"[INSERT] Inserting document '{doc_data.filename}' for project '{doc_data.project_id}'")
+        new_doc = Document(
+            project_id=doc_data.project_id,
+            filename=doc_data.filename,
+            doc_metadata=doc_data.metadata,
+        )
+        db.add(new_doc)
+        try:
+            await db.commit()
+            await db.refresh(new_doc)
+            logger.info(f"[INSERT] Success: Document '{doc_data.filename}' inserted")
+            return DocumentOut.model_validate(new_doc)
+        except IntegrityError as e:
+            await db.rollback()
+            logger.error(f"[INSERT] Failed: {e}")
+            raise ValueError(f"Document '{doc_data.filename}' already exists for project '{doc_data.project_id}'.")
 
-    async def insert_documents_bulk(
-        self,
-        bulk_data: DocumentInsertBulk,
-        batch_size: int = 100
-    ) -> List[DocumentOut]:
+    # ------------------------- Bulk Insert -------------------------
+    async def insert_documents_bulk(self, db: AsyncSession, bulk_data: DocumentInsertBulk, batch_size: int = 100) -> List[DocumentOut]:
+        logger.info(f"[BULK INSERT] Bulk insert for project '{bulk_data.project_id}', total: {len(bulk_data.documents)}")
         inserted_docs = []
 
-        async for session in self.get_session():
-            for i in range(0, len(bulk_data.documents), batch_size):
-                batch = bulk_data.documents[i:i + batch_size]
-
+        for i in range(0, len(bulk_data.documents), batch_size):
+            batch = bulk_data.documents[i:i + batch_size]
             db_objects = []
             for doc in batch:
-                d = Document(
-                    project_id=bulk_data.project_id,
-                    filename=doc.filename
-                )
-                d.metadata_json = doc.metadata  # assign separately
+                d = Document(project_id=bulk_data.project_id, filename=doc.filename)
+                d.metadata_json = doc.metadata
                 db_objects.append(d)
 
-                session.add_all(db_objects)
-                try:
-                    await session.commit()
-                    for doc in db_objects:
-                        await session.refresh(doc)
-                    inserted_docs.extend(db_objects)
-                except IntegrityError as e:
-                    await session.rollback()
-                    logger.error(f"Bulk insert batch failed due to duplicates: {e}")
-                    raise ValueError("Some documents already exist for this project.")
+            db.add_all(db_objects)
+            try:
+                await db.commit()
+                for doc in db_objects:
+                    await db.refresh(doc)
+                inserted_docs.extend(db_objects)
+                logger.info(f"[BULK INSERT] Inserted batch of {len(db_objects)} documents")
+            except IntegrityError as e:
+                await db.rollback()
+                logger.error(f"[BULK INSERT] Failed batch: {e}")
+                raise ValueError("Some documents already exist for this project.")
 
         return [DocumentOut.model_validate(doc) for doc in inserted_docs]
 
-    async def del_document(self, doc_data: DocumentDelete) -> Optional[DocumentOut]:
-        async for session in self.get_session():
-            stmt = (
-                delete(Document)
-                .where(
-                    and_(
-                        Document.filename == doc_data.filename,
-                        Document.project_id == doc_data.project_id,
-                    )
-                )
-                .returning(Document)
-            )
-            result = await session.execute(stmt)
-            await session.commit()
-            deleted_doc = result.scalar_one_or_none()
-            return DocumentOut.model_validate(deleted_doc) if deleted_doc else None
-
-    async def _list_documents(
-        self,
-        filters: Optional[List[ClauseElement]] = None,
-        offset: int = 0,
-        limit: int = 10,
-    ) -> Dict[str, Any]:
-        filters = filters or []
-
-        async for session in self.get_session():
-            stmt = (
-                select(Document, func.count().over().label("total_count"))
-                .where(*filters)
-                .offset(offset)
-                .limit(limit)
-            )
-            result = await session.execute(stmt)
-            rows = result.all()
-
-            total_count = rows[0].total_count if rows else 0
-            items = [DocumentOut.model_validate(doc) for doc, _ in rows]
-
-            return {
-                "total": total_count,
-                "offset": offset,
-                "limit": limit,
-                "items": items,
-            }
-
-    async def list_documents(self, project_id: UUID, offset: int = 0, limit: int = 10) -> Dict:
-        return await self._list_documents(
-            filters=[Document.project_id == project_id],
-            offset=offset,
-            limit=limit
+    # ------------------------- Delete Document -------------------------
+    async def del_document(self, db: AsyncSession, doc_data: DocumentDelete) -> Optional[DocumentOut]:
+        logger.info(f"[DELETE] Deleting document '{doc_data.filename}' for project '{doc_data.project_id}'")
+        stmt = (
+            delete(Document)
+            .where(and_(Document.filename == doc_data.filename, Document.project_id == doc_data.project_id))
+            .returning(Document)
         )
-    async def list_flushed_documents(self, project_id: UUID, offset: int = 0, limit: int = 10) -> Dict:
-        return await self._list_documents(
-            filters=[Document.project_id == project_id, Document.is_flushed == True],
-            offset=offset,
-            limit=limit
-        )
+        result = await db.execute(stmt)
+        await db.commit()
+        deleted_doc = result.scalar_one_or_none()
+        if deleted_doc:
+            logger.info(f"[DELETE] Success: '{doc_data.filename}' deleted")
+            return DocumentOut.model_validate(deleted_doc)
+        else:
+            logger.warning(f"[DELETE] Document '{doc_data.filename}' not found")
+            return None
 
-    async def list_unflushed_documents(self, project_id: UUID, offset: int = 0, limit: int = 10) -> Dict:
-        return await self._list_documents(
-            filters=[Document.project_id == project_id, Document.is_flushed == False],
-            offset=offset,
-            limit=limit
-        )
-    
-    async def list_processed_documents(self, project_id: UUID, offset: int = 0, limit: int = 10) -> Dict:
-        return await self._list_documents(
-            filters=[Document.project_id == project_id, Document.is_processed == True],
-            offset=offset,
-            limit=limit
-        )    
-    
-    async def list_unprocessed_documents(self, project_id: UUID, offset: int = 0, limit: int = 10) -> Dict:
-        return await self._list_documents(
-            filters=[Document.project_id == project_id, Document.is_processed == False],
-            offset=offset,
-            limit=limit
-        )
+    # ------------------------- List Documents -------------------------
+    async def list_documents(self, db: AsyncSession, project_id: UUID, offset: int = 0, limit: int = 10) -> Dict[str, Any]:
+        return await self._list_documents(db, [Document.project_id == project_id], offset, limit)
 
-    async def search_document(self, doc_data: DocumentSearch) -> DocumentOut:
-        async for session in self.get_session():
-            stmt = select(Document).where(
-                and_(
-                    Document.project_id == doc_data.project_id,
-                    Document.filename == doc_data.filename
-                )
-            )
-            result = await session.execute(stmt)
-            document = result.scalar_one_or_none() 
-            return DocumentOut.model_validate(document) if document else None
+    async def list_processed_documents(self, db: AsyncSession, project_id: UUID, offset: int = 0, limit: int = 10) -> Dict[str, Any]:
+        return await self._list_documents(db, [Document.project_id == project_id, Document.is_processed == True], offset, limit)
 
-    async def update_document(self, document_id: int) -> Optional[DocumentOut]:
-        async for session in self.get_session():
-            stmt = (
-                update(Document)
-                .where(Document.id == document_id)
-                .values(is_processed=True)
-                .returning(Document)
-            )
+    async def list_unprocessed_documents(self, db: AsyncSession, project_id: UUID, offset: int = 0, limit: int = 10) -> Dict[str, Any]:
+        return await self._list_documents(db, [Document.project_id == project_id, Document.is_processed == False], offset, limit)
 
-            result = await session.execute(stmt)
-            await session.commit()
+    async def list_flushed_documents(self, db: AsyncSession, project_id: UUID, offset: int = 0, limit: int = 10) -> Dict[str, Any]:
+        return await self._list_documents(db, [Document.project_id == project_id, Document.is_flushed == True], offset, limit)
 
-            document = result.scalar_one_or_none()
-            return DocumentOut.model_validate(document) if document else None
+    async def list_unflushed_documents(self, db: AsyncSession, project_id: UUID, offset: int = 0, limit: int = 10) -> Dict[str, Any]:
+        return await self._list_documents(db, [Document.project_id == project_id, Document.is_flushed == False], offset, limit)
 
-    async def flush_document(self, document_id: int) -> Optional[DocumentOut]:
-        async for session in self.get_session():
-            stmt = (
-                update(Document)
-                .where(Document.id == document_id)
-                .values(is_flushed=True)
-                .returning(Document)
-            )
+    async def _list_documents(self, db: AsyncSession, filters: Optional[List[ClauseElement]] = None, offset: int = 0, limit: int = 10) -> Dict[str, Any]:
+        stmt = select(Document, func.count().over().label("total_count")).where(*filters).offset(offset).limit(limit)
+        result = await db.execute(stmt)
+        rows = result.all()
+        total_count = rows[0].total_count if rows else 0
+        items = [DocumentOut.model_validate(doc) for doc, _ in rows]
+        logger.info(f"[LIST] Retrieved {len(items)} documents (offset={offset}, limit={limit})")
+        return {"total": total_count, "offset": offset, "limit": limit, "items": items}
 
-            result = await session.execute(stmt)
-            await session.commit()
+    # ------------------------- Search Document -------------------------
+    async def search_document(self, db: AsyncSession, doc_data: DocumentSearch) -> Optional[DocumentOut]:
+        stmt = select(Document).where(and_(Document.project_id == doc_data.project_id, Document.filename == doc_data.filename))
+        result = await db.execute(stmt)
+        document = result.scalar_one_or_none()
+        return DocumentOut.model_validate(document) if document else None
 
-            document = result.scalar_one_or_none()
-            return DocumentOut.model_validate(document) if document else None
+    # ------------------------- Update Document (processed) -------------------------
+    async def update_document(self, db: AsyncSession, document_id: int) -> Optional[DocumentOut]:
+        stmt = update(Document).where(Document.id == document_id).values(is_processed=True).returning(Document)
+        result = await db.execute(stmt)
+        await db.commit()
+        document = result.scalar_one_or_none()
+        return DocumentOut.model_validate(document) if document else None
+
+    # ------------------------- Flush Document -------------------------
+    async def flush_document(self, db: AsyncSession, document_id: int) -> Optional[DocumentOut]:
+        stmt = update(Document).where(Document.id == document_id).values(is_flushed=True).returning(Document)
+        result = await db.execute(stmt)
+        await db.commit()
+        document = result.scalar_one_or_none()
+        return DocumentOut.model_validate(document) if document else None

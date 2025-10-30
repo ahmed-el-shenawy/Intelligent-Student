@@ -189,7 +189,6 @@ class RefreshToken(Base):
     hashed_token: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    revoked: Mapped[bool] = mapped_column(Boolean, server_default="False", nullable=False)
 
     # Relationship
     user = relationship("User", back_populates="refresh_tokens")
