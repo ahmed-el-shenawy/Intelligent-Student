@@ -73,7 +73,7 @@ class AuthController:
             logger.warning("Unauthorized authorize attempt")
             raise NotPermitted()
 
-        project = await project_model.search_by_name(ProjectSearch(name=data.project_name))
+        project = await project_model.search_by_name(db, ProjectSearch(name=data.project_name))
         target_user = await auth_model.get_user_by_username(db, data.username)
         if not target_user:
             logger.warning(f"Target user not found: {data.username}")

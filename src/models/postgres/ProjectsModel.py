@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from models.postgres.tables_schema.tables import Project
 from models.postgres.operations_schema.projects import ProjectInsert, ProjectUpdate, ProjectDelete, ProjectList, ProjectSearch, ProjectOut
-from routes.exceptions import DatabaseError
+from routes.exceptions import DatabaseError, ProjectNotFound
 from helpers.logger import get_logger
 
 logger = get_logger("ProjectModel")
@@ -94,8 +94,8 @@ class ProjectModel:
                 return ProjectOut.model_validate(deleted_project)
             else:
                 logger.warning(f"Project '{data.name}' not found for deletion")
-                return None
+                raise ProjectNotFound(f"Project '{data.name}' not found")   
         except Exception as e:
             await db.rollback()
             logger.exception(f"Failed to delete project '{data.name}': {e}")
-            raise DatabaseError(str(e))
+            raise 

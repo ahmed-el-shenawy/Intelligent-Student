@@ -189,12 +189,20 @@
     chatBox.scrollTop = chatBox.scrollHeight;
 
     try {
-      const res = await fetch('http://localhost:5000/query', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, project_name: "project_1" ,k:5})
-      });
+  const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4OWIwMzhmNi1lMDY5LTRjYTItOWUyNC1kZjMzNWFjODcwYzQiLCJleHAiOjE3NjE5MTUzMjR9.faA-i0Y2iwcNQ7ipd-rO0FbW1Oapoc6uhQgjn8S7ugI'
 
+  const res = await fetch('http://localhost:5000/query', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}` // ✅ Add Bearer token here
+    },
+    body: JSON.stringify({
+      query,
+      project_name: "project_1",
+      k: 5
+    })
+  });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const data = await res.json();

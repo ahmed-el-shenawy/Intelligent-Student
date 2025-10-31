@@ -1,19 +1,23 @@
 """init
 
-Revision ID: 48451a4dd93c
+Revision ID: 9cc70996281a
 Revises: 
-Create Date: 2025-10-27 23:33:35.989270
+Create Date: 2025-10-31 16:53:33.051224
 
 """
+from datetime import datetime
 from typing import Sequence, Union
+import uuid
 
 from alembic import op
 import pgvector
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
+from helpers.security import hash_password
+
 # revision identifiers, used by Alembic.
-revision: str = '48451a4dd93c'
+revision: str = '9cc70996281a'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -68,7 +72,6 @@ def upgrade() -> None:
     sa.Column('hashed_token', sa.String(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False),
-    sa.Column('revoked', sa.Boolean(), server_default='False', nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], name=op.f('fk_refresh_tokens_user_id_users'), ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_refresh_tokens')),
     sa.UniqueConstraint('hashed_token', name=op.f('uq_refresh_tokens_hashed_token'))

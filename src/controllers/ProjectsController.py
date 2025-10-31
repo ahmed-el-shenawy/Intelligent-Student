@@ -92,4 +92,4 @@ class ProjectsController:
             return {"data": deleted, "message": "Project deleted successfully"}
         except Exception as e:
             logger.error(f"Failed to delete project '{data.name}': {e}")
-            raise DatabaseError(str(e))
+            raise

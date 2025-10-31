@@ -6,7 +6,9 @@ from models.postgres.VectorsModel import VectorModel
 from models.postgres.ChunksModel import ChunksModel
 from models.postgres.ProjectsModel import ProjectModel
 from models.postgres.UserHistoryModel import UserHistoryModel
+from models.postgres.ProjectUserModel import ProjectUserModel
 from models.postgres.operations_schema.projects import ProjectSearch
+from routes.exceptions import NotPermitted
 from .BaseController import BaseController
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,6 +18,7 @@ chunk_model = ChunksModel()
 project_model = ProjectModel()
 vec_model = VectorModel()
 history_model = UserHistoryModel()
+project_user_model = ProjectUserModel()
 
 
 class QueryController(BaseController):
@@ -41,6 +44,11 @@ class QueryController(BaseController):
             if not project:
                 raise ValueError(f"Project '{project_name}' does not exist")
             logger.info(f"Project '{project_name}' found (ID={project.id})")
+
+            if not await project_user_model.user_has_access(db, user_id=user_id, project_id=project.id):
+                logger.warning(f"Unauthorized access: User {user_id} tried to query project '{project_name}'")
+                raise NotPermitted(f"User {user_id} is not authorized to access project '{project_name}'")
+
 
             # 2️⃣ Embed query and retrieve top-k context
             embedding = embed_client.embed([query])[0]

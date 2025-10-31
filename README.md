@@ -1,43 +1,147 @@
+
 # Intelligent-Student
-This is an application using Retrival Augemented Generation (RAG)
-# To start the app
-~~~bash
-uvicorn main:app --reload --host 0.0.0.0 --port 5000
-~~~
 
-# Database Migration with Alembic
+**Intelligent-Student** is an application leveraging **Retrieval-Augmented Generation (RAG)** to provide intelligent query responses over documents.
 
-Alembic is a lightweight database migration tool for SQLAlchemy.  
-It helps manage database schema changes over time, track versions, and safely upgrade or downgrade your database.
- 
-## Initialize Alembic
+- **LLM**: Generation mode `qwen/qwen3-32b` via Groq API.  
+- **Embeddings**: `nomic-embed-text` locally through Ollama.  
+- **Database**: PostgreSQL with `pgvector` extension (running in Docker).  
+- **Flexibility**: Switch models as long as they follow OpenAI API standards by updating your `.env` file.
+
+
+## 1. Setup
+
+### 1.1 Install dependencies
+- Install **Docker**.  
+  - On Windows, install **WSL2** first.  
+
+- Create a Python virtual environment (example using Conda):
 ```bash
-alembic init alembic
+conda create -n istud python=3.12
+conda activate istud
+````
+
+* Copy environment files and update credentials:
+
+```bash
+mv src.env.example .env
+mv docker.env.example .env
+# Edit .env to set API keys and other values
 ```
-## Create migration
+
+* Install Python requirements:
+
 ```bash
-alembic revision --autogenerate -m "init"
+cd src
+pip install -r requirements.txt
 ```
-## Apply migration
+
+### 1.2 Start Docker services
+
 ```bash
+cd docker
+docker compose up
+```
+
+### 1.3 Apply database migrations
+
+```bash
+cd src
 alembic upgrade head
 ```
-## Downgrade (optional)
-- Step back one migration
+
+### 1.4 Start the FastAPI app
+
 ```bash
-alembic downgrade -1
+cd src
+uvicorn main:app --reload --host 0.0.0.0 --port 5000
 ```
-- Go back to the initial state (base)
-```bash
-alembic downgrade base
+
+Your app will be running at `http://localhost:5000`.
+
+---
+
+## 2. API Routes
+
+### **2.1 Auth** (`/auth`)
+
+User authentication, authorization, token management, and role updates.
+
+| Endpoint       | Method | Description                       |
+| -------------- | ------ | --------------------------------- |
+| `/signup`      | POST   | Register a new user               |
+| `/login`       | POST   | Authenticate user & get tokens    |
+| `/refresh`     | POST   | Refresh access token              |
+| `/logout`      | POST   | Log out and invalidate tokens     |
+| `/authorize`   | POST   | Grant permissions                 |
+| `/deauthorize` | POST   | Revoke permissions                |
+| `/update-role` | POST   | Update a user's role (admin only) |
+
+---
+
+### **2.2 Projects** (`/projects`)
+
+Manage projects, assign users, and retrieve project information.
+
+| Endpoint  | Method | Description            |
+| --------- | ------ | ---------------------- |
+| `/`       | POST   | Create a new project   |
+| `/`       | GET    | List all projects      |
+| `/search` | GET    | Search project by name |
+| `/`       | PUT    | Update project details |
+| `/`       | DELETE | Delete a project       |
+
+---
+
+### **2.3 Documents** (`/documents`)
+
+Upload, process, manage, and search documents for RAG queries.
+
+| Endpoint                 | Method | Description                               |
+| ------------------------ | ------ | ----------------------------------------- |
+| `/upload/{project_name}` | POST   | Upload one or multiple files to a project |
+| `/process`               | POST   | Process documents to generate embeddings  |
+| `/flush`                 | POST   | Flush document embeddings                 |
+| `/delete`                | POST   | Delete specific documents                 |
+| `/`                      | GET    | List documents for a project              |
+| `/search`                | POST   | Search a document by project and filename |
+
+---
+
+### **2.4 Query** (`/query`)
+
+Send queries to the RAG engine and retrieve answers.
+
+| Endpoint | Method | Description                                          |
+| -------- | ------ | ---------------------------------------------------- |
+| `/`      | POST   | Query a project and get top-K results from documents |
+
+**Example Request:**
+
+```json
+POST /query
+{
+  "project_name": "my_project",
+  "query": "Explain RAG workflow",
+  "k": 5
+}
 ```
-## Check migration status and history
-```bash
-alembic current
-```
-```bash
-alembic history
-```
-```bash
-alembic history --verbose
-```
+
+---
+
+### **2.5 System** (`/system`)
+
+System management and health endpoints.
+
+| Endpoint | Method | Description                     |
+| -------- | ------ | ------------------------------- |
+| `/reset` | POST   | Reset the system (internal use) |
+
+---
+
+## 3. Notes
+
+* Make sure your models, API keys, and database URLs in `.env` match your environment.
+* Docker is required to run Postgres with `pgvector` for vector storage.
+* You can replace LLMs and embeddings with any OpenAI-compatible model by updating `.env`.
+ 
