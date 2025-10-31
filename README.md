@@ -6,6 +6,10 @@
 - **LLM**: Generation mode `qwen/qwen3-32b` via Groq API.  
 - **Embeddings**: `nomic-embed-text` locally through Ollama.  
 - **Database**: PostgreSQL with `pgvector` extension (running in Docker).  
+- **Authentication**: Only authenticated users can call API endpoints.  
+- **Authorization**: Users must be authorized for a project to query its documents.  
+- **User History**: The system tracks query history per user per project.  
+- **Tokens**: Login generates two tokens — **access token** (short-lived) and **refresh token** (long-lived).  
 - **Flexibility**: Switch models as long as they follow OpenAI API standards by updating your `.env` file.
 
 
@@ -111,6 +115,9 @@ Upload, process, manage, and search documents for RAG queries.
 ### **2.4 Query** (`/query`)
 
 Send queries to the RAG engine and retrieve answers.
+```
+Authorization: Only users authorized for a specific project can query its documents. Attempting to query a project without permission will return an authorization error.
+```
 
 | Endpoint | Method | Description                                          |
 | -------- | ------ | ---------------------------------------------------- |
