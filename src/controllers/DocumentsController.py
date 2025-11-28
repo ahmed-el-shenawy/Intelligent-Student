@@ -146,7 +146,7 @@ class DocumentsController(BaseController):
             if doc["data"].is_flushed:
                 raise ValueError(f"File '{file_name}' is flushed. Re-upload to process.")
             if doc["data"].is_processed:
-                await ChunksModel().delete_chunks_by_document_id(db, doc.id)
+                await ChunksModel().delete_chunks_by_document_id(db, doc["data"].id)
 
             chunks = self.load_and_chunk_pdf(project_name, file_name, chunk_size, chunk_overlap)
             insert_chunks = [

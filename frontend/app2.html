@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>RAG Assistant — Login & Chat</title>
+  
+  <!-- Styles -->
   <style>
     :root {
       --bg: #f9fafb;
@@ -45,6 +47,22 @@
     .message { max-width: 80%; padding: 1rem 1.25rem; border-radius: 18px; line-height: 1.5; box-shadow: var(--shadow); word-break: break-word; }
     .user { align-self: flex-end; background: var(--primary); color: white; border-bottom-right-radius: 6px; }
     .bot { align-self: flex-start; background: #f3f4f6; color: var(--text); border-bottom-left-radius: 6px; }
+
+    /* Markdown styling */
+    .message.bot p { margin-bottom: 0.5rem; }
+    .message.bot pre {
+      background: #1e1e1e;
+      color: #f3f4f6;
+      padding: 0.75rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: monospace;
+      font-size: 0.875rem;
+    }
+    .message.bot code { background: #f3f4f6; padding: 2px 5px; border-radius: 4px; font-family: monospace; }
+    .message.bot a { color: var(--primary); text-decoration: underline; }
+    .message.bot ul, .message.bot ol { margin-left: 1.25rem; margin-bottom: 0.5rem; }
+
     .input-area { display: flex; gap: 0.75rem; padding: 1rem; border-top: 1px solid var(--border); background: white; }
     #queryInput { flex: 1; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.75rem 1rem; font-size: 1rem; outline: none; }
     #queryInput:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.2); }
@@ -52,6 +70,9 @@
     #sendButton:hover { background: var(--primary-hover); }
     #sendButton:disabled { opacity: 0.6; cursor: not-allowed; }
   </style>
+
+  <!-- Markdown parser -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
   <header>🧠 RAG Assistant</header>
@@ -87,6 +108,7 @@
     </div>
   </main>
 
+  <!-- Scripts -->
   <script>
     const API_BASE = "http://localhost:5000";
 
@@ -118,7 +140,13 @@
       showLogin() { this.loginBox.classList.remove("hidden"); this.signupBox.classList.add("hidden"); this.chatArea.classList.add("hidden"); },
       showSignup() { this.signupBox.classList.remove("hidden"); this.loginBox.classList.add("hidden"); this.chatArea.classList.add("hidden"); },
       showChat() { this.chatArea.classList.remove("hidden"); this.loginBox.classList.add("hidden"); this.signupBox.classList.add("hidden"); },
-      addMessage(sender, text) { const div = document.createElement("div"); div.className = `message ${sender}`; div.textContent = text; this.chatBox.appendChild(div); this.chatBox.scrollTop = this.chatBox.scrollHeight; },
+      addMessage(sender, text) {
+        const div = document.createElement("div");
+        div.className = `message ${sender}`;
+        div.innerHTML = marked.parse(text); // ✅ Render Markdown
+        this.chatBox.appendChild(div);
+        this.chatBox.scrollTop = this.chatBox.scrollHeight;
+      },
       setError(type,msg){ type==="login"?this.loginError.textContent=msg:this.signupError.textContent=msg; }
     };
 

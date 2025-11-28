@@ -48,7 +48,10 @@ docker compose up
 ```
 
 ### 1.3 Apply database migrations
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
 
+```
 ```bash
 cd src
 alembic upgrade head

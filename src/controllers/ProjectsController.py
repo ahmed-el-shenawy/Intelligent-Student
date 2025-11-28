@@ -14,7 +14,7 @@ class ProjectsController:
 
     async def create_project(self, db: AsyncSession, data: ProjectCreateRequest, current_user: dict):
         logger.info(f"User {current_user['id']} attempting to create project '{data.name}'")
-        if current_user["role"] not in (0, 1):
+        if current_user["role"] != 0:
             logger.warning(f"Unauthorized create attempt by user {current_user['id']}")
             raise NotPermitted()
 
@@ -53,11 +53,11 @@ class ProjectsController:
 
     async def update_project(self, db: AsyncSession, data: ProjectUpdateRequest, current_user: dict):
         logger.info(f"User {current_user['id']} attempting to update project '{data.old_name}'")
-        if current_user["role"] not in (0, 1):
+        if current_user["role"] != 0:
             logger.warning(f"Unauthorized update attempt by user {current_user['id']}")
             raise NotPermitted()
 
-        if data.old_name != data.new_name:
+        if data.new_name and data.old_name != data.new_name:
             old_path = self.ASSETS_DIR / data.old_name
             new_path = self.ASSETS_DIR / data.new_name
             if not old_path.exists():

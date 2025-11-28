@@ -1,23 +1,18 @@
 """init
 
-Revision ID: 9cc70996281a
+Revision ID: 91fd60c6876e
 Revises: 
-Create Date: 2025-10-31 16:53:33.051224
+Create Date: 2025-11-09 22:14:09.384355
 
 """
-from datetime import datetime
 from typing import Sequence, Union
-import uuid
-
-from alembic import op
 import pgvector
+from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
-from helpers.security import hash_password
-
 # revision identifiers, used by Alembic.
-revision: str = '9cc70996281a'
+revision: str = '91fd60c6876e'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

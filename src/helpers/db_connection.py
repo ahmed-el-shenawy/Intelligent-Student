@@ -9,11 +9,6 @@ DATABASE_URL = (
     f"@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}"
 )
 
-SYNC_DATABASE_URL = (
-    f"postgresql+psycopg2://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}"
-    f"@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}"
-)
-
 # Create engine once globally
 engine = create_async_engine(
     DATABASE_URL,

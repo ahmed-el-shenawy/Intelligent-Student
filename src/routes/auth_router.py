@@ -6,9 +6,7 @@ from helpers.deps import get_current_user
 from helpers.handle_exceptions import handle_exceptions
 from routes.schemes.auth import UserCreate, UserLogin, RefreshTokenRequest, UserAuthorize, UpdateRoleRequest
 from controllers.AuthController import AuthController
-from routes.exceptions import *
 from helpers.logger import get_logger
-from functools import wraps
 
 logger = get_logger("auth_router")
 
