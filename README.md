@@ -84,6 +84,8 @@ User authentication, authorization, token management, and role updates.
 | `/refresh`     | POST   | Refresh access token              |
 | `/logout`      | POST   | Log out and invalidate tokens     |
 | `/authorize`   | POST   | Grant permissions                 | 
+| `/deauthorize` | POST   | Grant permissions                 | 
+| `/update-role` | POST   | change the rols                   | 
 
 ---
 
