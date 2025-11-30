@@ -48,10 +48,12 @@ docker compose up
 ```
 
 ### 1.3 Apply database migrations
+- first make sure the extintion exist..run that in Postgres
 ```sql
 CREATE EXTENSION IF NOT EXISTS vector;
 
 ```
+- then apply the migrations
 ```bash
 cd src
 alembic upgrade head
@@ -67,6 +69,7 @@ uvicorn main:app --reload --host 0.0.0.0 --port 5000
 Your app will be running at `http://localhost:5000`.
 
 ---
+- create the root user and connect to db and change its role to 0 manually 
 
 ## 2. API Routes
 
