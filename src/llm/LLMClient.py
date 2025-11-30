@@ -32,14 +32,16 @@ You are an Educational Chatbot. Follow these rules exactly:
 4. Maintain a professional, consistent tone in every response.
 5. Include a real-world example when it helps the user understand the concept more easily.
 6. End the response with a short, clear conclusion that reinforces the main idea.
+7. Make your response short and clear and concise.
 
 """
         response = self.client.responses.create(
             model=self.model_name,
             instructions= instructions,
             input=prompt,
-            # max_output_tokens=100  # limits the length
-        )
+            max_output_tokens=200,
+            
+         )
         return response.output_text
 
     def embed(self, text: List[str]):
