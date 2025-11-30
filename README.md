@@ -3,9 +3,9 @@
 
 **Intelligent-Student** is an application leveraging **Retrieval-Augmented Generation (RAG)** to provide intelligent query responses over documents.
 
-- **LLM**: Generation mode `qwen/qwen3-32b` via Groq API.  
-- **Embeddings**: `nomic-embed-text` locally through Ollama.  
-- **Database**: PostgreSQL with `pgvector` extension (running in Docker).  
+- **LLM**: Generation mode `llama-3.3-70b-versatile` via Groq API.  
+- **Embeddings**: `nomic-embed-text` locally through Ollama with vector size 768.  
+- **Database**: PostgreSQL with `pgvector` extension to store embeddings (running in Docker).  
 - **Authentication**: Only authenticated users can call API endpoints.  
 - **Authorization**: Users must be authorized for a project to query its documents.  
 - **User History**: The system tracks query history per user per project.  
@@ -80,9 +80,7 @@ User authentication, authorization, token management, and role updates.
 | `/login`       | POST   | Authenticate user & get tokens    |
 | `/refresh`     | POST   | Refresh access token              |
 | `/logout`      | POST   | Log out and invalidate tokens     |
-| `/authorize`   | POST   | Grant permissions                 |
-| `/deauthorize` | POST   | Revoke permissions                |
-| `/update-role` | POST   | Update a user's role (admin only) |
+| `/authorize`   | POST   | Grant permissions                 | 
 
 ---
 
