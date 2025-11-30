@@ -1,7 +1,9 @@
+import base64
+from io import BytesIO
 import logging
 from uuid import UUID
 from typing import List
-
+from gtts import gTTS
 from models.postgres.VectorsModel import VectorModel
 from models.postgres.ChunksModel import ChunksModel
 from models.postgres.ProjectsModel import ProjectModel
@@ -21,9 +23,27 @@ history_model = UserHistoryModel()
 project_user_model = ProjectUserModel()
 
 
+
 class QueryController(BaseController):
     def __init__(self):
         super().__init__()
+    
+    def detect_language(self,text):
+        """
+        Detect if text is primarily Arabic or English
+        """
+        if not text:
+            return 'en'
+
+        arabic_chars = sum(1 for c in text if '\u0600' <= c <= '\u06FF')
+        total_chars = len(text.strip())
+
+        if total_chars == 0:
+            return 'en'
+
+        # If text contains Arabic characters, consider it Arabic
+        return 'ar' if arabic_chars > 0 else 'en'
+
 
     async def get_top_k(
         self,
@@ -33,6 +53,7 @@ class QueryController(BaseController):
         gen_client,
         project_name: str,
         query: str,
+        voice: int,
         k: int,
     ):
         try:
@@ -62,7 +83,8 @@ class QueryController(BaseController):
             history = await history_model.get_history(db=db, user_id=user_id, project_id=project.id)
 
             # 4️⃣ Construct messages for LLM
-            messages = [{"role": "system", "content": "You are a helpful assistant. Answer the user's questions based on context. If the context does not provide enough info, respond with 'I don't know.'"}]
+            # messages = [{"role": "system", "content": "You are a helpful assistant. Answer the user's questions based on context. If the context does not provide enough info, respond with 'I don't know.'"}]
+            messages = []
             messages.extend(history)
             if context_texts:
                 context_prompt = "\n---\n".join(context_texts)
@@ -71,6 +93,8 @@ class QueryController(BaseController):
 
             # 5️⃣ Get LLM response
             answer = gen_client.response(messages)
+            
+
             logger.info(f"Generated answer for user {user_id} in project '{project_name}'")
 
             # 6️⃣ Update history
@@ -81,7 +105,21 @@ class QueryController(BaseController):
             await history_model.update_history(db=db, user_id=user_id, project_id=project.id, history=history)
             logger.info(f"Updated user {user_id} history for project '{project_name}'")
 
-            return answer
+            lang = self.detect_language(answer)
+            if voice == 1:
+                mp3_buffer = BytesIO()
+                tts = gTTS(text=answer, lang=lang, slow=False)
+                tts.write_to_fp(mp3_buffer)
+                mp3_buffer.seek(0)
+
+                audio_base64 = base64.b64encode(mp3_buffer.read()).decode("utf-8")
+
+                return {
+                    "answer": answer,
+                    "audio_base64": audio_base64
+                }
+
+            return {"answer": answer}
 
         except Exception as e:
             logger.error(f"Failed to get top-k answer for user {user_id}, project '{project_name}': {e}")

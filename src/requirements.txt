@@ -12,3 +12,4 @@ pypdf==6.1.2
 openai==2.6.1
 passlib[argon2]==1.7.4
 python-jose[cryptography]==3.5.0
+gTTS==2.5.4

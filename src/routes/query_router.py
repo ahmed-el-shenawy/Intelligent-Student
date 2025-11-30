@@ -34,6 +34,7 @@ async def answer_question(
         gen_client=request.app.state.generation_client,
         project_name=data.project_name,
         query=data.query,
+        voice=data.voice,
         k=data.k
     )
 
